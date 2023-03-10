@@ -1,0 +1,92 @@
+#Execution begins at address 0
+    .pos 0
+    irmovq stack, %rsp  # Set up stack pointer
+    call main
+    halt
+
+
+# Sample linked list
+    .align 8
+ele1:
+    .quad 0x00a
+    .quad ele2
+ele2:
+    .quad 0x0b0
+    .quad ele3
+ele3:
+    .quad 0xc00
+    .quad 0
+# Source block
+src:
+    .quad 0x00a
+    .quad 0x0b0
+    .quad 0xc00
+# Destination block
+dest:
+    .quad 0x111
+    .quad 0x222
+    .quad 0x333
+
+
+main:
+    # irmovq ele1, %rdi
+    # call rsum_list
+    irmovq $3, %rdx
+    irmovq dest, %rsi
+    irmovq src, %rdi 
+    call copy_block
+    ret
+
+
+sum_list:
+    xorq %rax, %rax
+    irmovq $0, %rsi
+sloop:
+    subq %rsi, %rdi
+    je sloop_end
+    mrmovq (%rdi), %rdx
+    addq %rdx, %rax
+    mrmovq 8(%rdi), %rdi
+    jmp sloop
+ sloop_end:
+    ret
+
+
+rsum_list:
+    irmovq $0, %rsi
+    subq %rsi, %rdi
+    je sloop_end
+    mrmovq (%rdi), %rdx
+    pushq %rdx
+    mrmovq 8(%rdi), %rdi
+    call rsum_list
+    popq %rdx
+    addq %rdx, %rax
+sloop_end:
+    ret
+
+
+copy_block:
+    pushq %r10
+    xorq %rax, %rax
+    irmovq $8, %rcx
+    irmovq $1, %r8
+    irmovq $0, %r9
+cloop:
+    subq %r9, %rdx
+    jle cloop_end
+    mrmovq (%rdi), %r10     # val = *src
+    addq %rcx, %rdi         # src++
+    rmmovq  %r10, (%rsi)    # *dest = val
+    addq %rcx, %rsi         # dest++
+    xorq %r10, %rax         # result ^= val
+    subq %r8, %rdx          # len--
+    jmp cloop
+cloop_end:
+    popq %r10
+    ret
+
+
+#Stack starts here and grows to lower address
+    .pos 0x200
+stack:

