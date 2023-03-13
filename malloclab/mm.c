@@ -108,7 +108,7 @@ static char* heap_listp = NULL;
 #ifdef DEBUG_OPEN
 #define LOG_RECORD(info)	log_record(__func__, __LINE__, info)
 #else
-#define LOG_RECORD(info)	;
+#define LOG_RECORD(info)	
 #endif
 
 
