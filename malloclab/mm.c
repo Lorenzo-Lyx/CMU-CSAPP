@@ -1,6 +1,7 @@
-/*
- * mm-naive.c - The fastest, least memory-efficient malloc package.
+/* @Filename 
+ * mm_implicit.c
  * 
+ * @Desc 
  * In this naive approach, a block is allocated by simply incrementing
  * the brk pointer.  A block is pure payload. There are no headers or
  * footers.  Blocks are never coalesced or reused. Realloc is
@@ -95,15 +96,15 @@ team_t team = {
  * and @Def{PREV_BLKP} depends on previous block's footer.
  */
 #define NEXT_BLKP(payload_pointer)  \
-					( (char *)(payload_pointer) + GET_SIZE( ((char *)(payload_pointer) - WSIZE) ) ) 
+					( (char *)(payload_pointer) + GET_SIZE( ((char *)(payload_pointer)-WSIZE) ) ) 
 #define PREV_BLKP(payload_pointer)  \
-					( (char *)(payload_pointer) - GET_SIZE( ((char *)(payload_pointer) - DSIZE) ) )
+					( (char *)(payload_pointer) - GET_SIZE( ((char *)(payload_pointer)-DSIZE) ) )
 
 
 static char* heap_listp = NULL;
 
 
-#define DEBUG_OPEN 1
+// #define DEBUG_OPEN 1
 #define COMMA	,
 #ifdef DEBUG_OPEN
 #define LOG_RECORD(info)	log_record(__func__, __LINE__, info)
@@ -112,12 +113,14 @@ static char* heap_listp = NULL;
 #endif
 
 
+
 /**
- * @Desc record the process of program in @File{logfile.txt} if @Micor{DEBUG_OPEN} is defined.
- * @Idea The implement is not perfect because @File{logfile.txt} will not be closen.
+ * @Desc 
+ * record the process of program in @File{logfile.txt} if @Micor{DEBUG_OPEN} is defined.
+ * @Idea 
+ * The implement is not perfect because @File{logfile.txt} will not be closen.
 */
 static inline void log_record(const char *function_name, const int line_number, const char *info_format, ...){
-#ifdef DEBUG_OPEN
 	static FILE *log_file = NULL;
 	static char info_buffer[1024];
 	log_file = log_file == NULL ? fopen("logfile.txt", "w") : log_file;
@@ -127,25 +130,30 @@ static inline void log_record(const char *function_name, const int line_number, 
 	// @Explain put the parameter address after @Param{info} in @Var{params}.
 	va_start(params, info_format);
 	vfprintf(log_file, info_buffer, params); 
+	fflush(log_file);
 	va_end(params); 
-#endif
 	return;
 }
 
+
+
+void mm_check();
+
+
+
 /** 
- * @Desc The @func{coalesce} is a straightforward implementation of the four cases
+ * @Desc 
+ * The @func{coalesce} is a straightforward implementation of the four cases
  * in section <simple implementation details>, The free list format we have chosen-
  * with its prologue and epilogue blocks that are always marked as allocated-allows
  * us to ignore the potentially troublesome edge conditions where the requested block
- * {payload_pointer} is at the beginning or end of the heap.
+ * @Var{payload_pointer} is at the beginning or end of the heap.
 */
 static void *coalesce(void *payload_pointer) {
 	size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(payload_pointer)));
 	size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(payload_pointer)));
 	size_t size = GET_SIZE(HDRP(payload_pointer));
-	if(prev_alloc && next_alloc) {            // case 1
-		return payload_pointer;
-	} else if ( prev_alloc && !next_alloc ){  // case 2
+    if ( prev_alloc && !next_alloc ){  // case 2
 		size += GET_SIZE( HDRP(NEXT_BLKP(payload_pointer)) );
 		PUT(HDRP(payload_pointer), PACK(size, 0));
 		/* @Explain 
@@ -158,9 +166,9 @@ static void *coalesce(void *payload_pointer) {
 		PUT(FTRP(payload_pointer), PACK(size, 0));
 		PUT(HDRP(PREV_BLKP(payload_pointer)), PACK(size, 0));
 		payload_pointer= PREV_BLKP(payload_pointer);
-	} else {                                  // case 4
-		size += GET_SIZE( HDRP(PREV_BLKP(payload_pointer)) ) 
-						+ GET_SIZE( FTRP(NEXT_BLKP(payload_pointer)) );
+	} else if ( !prev_alloc && !next_alloc ) {                                  // case 4
+		size += (GET_SIZE( HDRP(PREV_BLKP(payload_pointer)) ) 
+			+ GET_SIZE( HDRP(NEXT_BLKP(payload_pointer)) ));
 		PUT(HDRP(PREV_BLKP(payload_pointer)), PACK(size, 0));
 		PUT(FTRP(NEXT_BLKP(payload_pointer)), PACK(size, 0));
 		payload_pointer = PREV_BLKP(payload_pointer);
@@ -170,17 +178,18 @@ static void *coalesce(void *payload_pointer) {
 
 
 /**
- *  @Desc The @func{extend_heap} is invoked in two different circumstances:
+ * @Desc 
+ * The @func{extend_heap} is invoked in two different circumstances:
  * (1) when the heap is initialized;
  * (2) when @func{mm_malloc} is unable to find a suitable fit.
  * To maintain alignment, @func{extend_heap} rounds up the requested size to the
  * nearest multiple of 2 words(8 bytes) and then requests the additional heap space 
  * from the memory system.
- * @Params {words} is the number of words, for examples, we want to extend the heap by
+ * @Param{words} is the number of words, for examples, we want to extend the heap by
  * 8*WSIZE bytes, then we only need to let @param{words} is 8.
 */
 static void *extend_heap(size_t words) {
-	log_record(__func__, __LINE__, "Beginning.");
+	LOG_RECORD("Beginning.");
 	char *payload_pointer;
 	size_t size;
 	// Allocate an even number of words to maintain aignment.
@@ -245,12 +254,14 @@ int mm_init(void) {
 static void *find_fit(size_t adjusted_size) {
 	LOG_RECORD("Beginning.");
 	char* payload_pointer = NEXT_BLKP(heap_listp);
-	/* @Idea @Code{static char* payload_pointer = heap_listp} performs
-	 * a next-fit search.
+	/* @Idea 
+	 * @Code{static char* payload_pointer = heap_listp} performs a next-fit search.
 	 */
 		
 	size_t block_size = 0;
-	//@Explain check until end.
+	/* @Explain 
+	 * check until the end.
+	 */
 	while( (block_size=GET_SIZE(HDRP(payload_pointer))) > 0 ) {
 		if( !GET_ALLOC(HDRP(payload_pointer)) && block_size >= adjusted_size ){
 			LOG_RECORD("@Return, find a Fit!");
@@ -278,8 +289,8 @@ static void place(void *payload_pointer, size_t adjusted_size){
 		PUT(HDRP(NEXT_BLKP(payload_pointer)), PACK(payload_size-adjusted_size, 0));
 		PUT(FTRP(payload_pointer), PACK(adjusted_size, 1));
 	} else {
-		PUT(HDRP(payload_pointer), PACK(adjusted_size, 1));
-		PUT(FTRP(payload_pointer), PACK(adjusted_size, 1));
+		PUT(HDRP(payload_pointer), PACK(payload_size, 1));
+		PUT(FTRP(payload_pointer), PACK(payload_size, 1));
 	}
 	LOG_RECORD("@Return.");
 	return;
@@ -302,7 +313,7 @@ void *mm_malloc(size_t size) {
 	size_t adjusted_size = ALIGN((size+DSIZE));
 		
 	// @Explain Search the free list for a fit.
-	char *payload_pointer;
+	char *payload_pointer = NULL;
 	if( (payload_pointer=find_fit(adjusted_size)) != NULL) {
 		place(payload_pointer, adjusted_size);
 		LOG_RECORD("It is correct, %p"COMMA payload_pointer);
@@ -312,7 +323,7 @@ void *mm_malloc(size_t size) {
 	 * block, place the requested block in the new free block.
 	 */
 	size_t extend_size = MAX(adjusted_size, CHUNKSIZE);
-	if( (payload_pointer=extend_heap(extend_size)) !=NULL ){
+	if( (payload_pointer=extend_heap(extend_size/WSIZE)) !=NULL ){
 		place(payload_pointer, adjusted_size);
 	}
 	// @Explain Payload_pointer may be NULL.
@@ -329,6 +340,9 @@ void mm_free(void *payload_pointer) {
 	PUT(FTRP(payload_pointer), PACK(size, 0));
 	coalesce(payload_pointer);
 
+// #ifdef DEBUG_OPEN
+// 	mm_check();
+// #endif
 	return;
 }
 
@@ -370,8 +384,8 @@ void *mm_realloc(void *payload_pointer, size_t new_size)
     // @Desc @var{alloc_case} is (prev_alloc<<1 | next_alloc)
     size_t alloc_case = (GET_ALLOC(HDRP(prev_payload)) << 1) | GET_ALLOC(HDRP(next_payload));
 
-    size_t prev_size =GET_SIZE(HDRP(prev_payload));
-    size_t next_size =GET_SIZE(HDRP(next_payload));
+    size_t prev_size = GET_SIZE(HDRP(prev_payload));
+    size_t next_size = GET_SIZE(HDRP(next_payload));
 
     void *new_payload_pointer = NULL;
     size_t copy_size = the_size - DSIZE;
@@ -425,7 +439,19 @@ void *mm_realloc(void *payload_pointer, size_t new_size)
 }
 
 
-
+void mm_check() {
+	char* payload_pointer = NEXT_BLKP(heap_listp);
+	size_t block_size = 0;
+	while( (block_size=GET_SIZE(HDRP(payload_pointer))) > 0 ) {
+		if(GET_ALLOC(HDRP(payload_pointer))) {
+			LOG_RECORD("\t\ta\t\t%d\t\t"COMMA GET_SIZE(HDRP(payload_pointer)));
+		} else {
+			LOG_RECORD("\t\tf\t\t%d\t\t"COMMA GET_SIZE(HDRP(payload_pointer)));
+		}
+		payload_pointer = NEXT_BLKP(payload_pointer);
+	}
+	return;
+}
 
 
 

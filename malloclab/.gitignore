@@ -1,4 +1,5 @@
 # ignore extra files
 mdriver
+mdriver-debug
 logfile.txt
 *.rep

@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": "gdb-debuger",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/mdriver",
+            "args": ["-vf", "short-test-bal.rep"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb"
+        }
+    ]
+}
