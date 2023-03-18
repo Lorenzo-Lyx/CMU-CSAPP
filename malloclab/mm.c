@@ -340,9 +340,9 @@ void mm_free(void *payload_pointer) {
 	PUT(FTRP(payload_pointer), PACK(size, 0));
 	coalesce(payload_pointer);
 
-// #ifdef DEBUG_OPEN
-// 	mm_check();
-// #endif
+#ifdef DEBUG_OPEN
+	mm_check();
+#endif
 	return;
 }
 
@@ -398,13 +398,22 @@ void *mm_realloc(void *payload_pointer, size_t new_size)
      * @Label{RequestSizeLess}. It is implemented by calling @func{mm_realloc} again.
      */
     switch(alloc_case) {
+    case 0: // @Desc 00, Both blocks are free.
+        if ( next_size+the_size+prev_size >= adjusted_size ) {
+            PUT(FTRP(next_payload), PACK(next_size+the_size+prev_size, 1));
+            PUT(HDRP(prev_payload), PACK(next_size+the_size+prev_size, 1));
+            memmove(prev_payload, payload_pointer, copy_size);
+            return mm_realloc(prev_payload, adjusted_size-DSIZE);
+        } else { // @Explain else go to case 3
+            break;
+        }
     case 1: // @Desc 01, Only previous block is free.
         if( prev_size+the_size >= adjusted_size ) {
             PUT(FTRP(payload_pointer), PACK(prev_size+the_size, 1));
             PUT(HDRP(prev_payload), PACK(prev_size+the_size, 1));
-            memcpy(prev_payload, payload_pointer, copy_size);
-            return mm_realloc(prev_payload, adjusted_size);
-        } else { // @Explain else go to case 0
+            memmove(prev_payload, payload_pointer, copy_size);
+            return mm_realloc(prev_payload, adjusted_size-DSIZE);
+        } else { // @Explain else go to case 3
             break;
         }
 
@@ -412,27 +421,17 @@ void *mm_realloc(void *payload_pointer, size_t new_size)
         if( next_size+the_size >= adjusted_size ) {
             PUT(HDRP(payload_pointer), PACK(next_size+the_size, 1));
             PUT(FTRP(next_payload), PACK(next_size+the_size, 1));
-            return mm_realloc(payload_pointer, adjusted_size);
-        } else { // @Explain else go to case 0
-            break;
-        }
-
-    case 3: // @Desc 11, Both blocks is allocated, we can only malloc again.
-        if ( next_size+the_size+prev_size >= adjusted_size ) {
-            PUT(FTRP(next_payload), PACK(next_size+the_size+prev_size, 1));
-            PUT(HDRP(prev_payload), PACK(next_size+the_size+prev_size, 1));
-            memcpy(prev_payload, payload_pointer, copy_size);
-            return mm_realloc(prev_payload, adjusted_size);
-        } else { // @Explain else go to case 0
+            return mm_realloc(payload_pointer, adjusted_size-DSIZE);
+        } else { // @Explain else go to case 3
             break;
         }
     }
-    // @Desc case 0: 00, none of blocks is free.
-    new_payload_pointer = malloc(new_size);
+    // @Desc case 3: 11, Both blocks is allocated, we can only malloc again.
+    new_payload_pointer = mm_malloc(new_size);
     if( new_payload_pointer == NULL ) {
         return NULL;
     }
-    memcpy(new_payload_pointer, payload_pointer, copy_size);
+    memmove(new_payload_pointer, payload_pointer, copy_size);
     mm_free(payload_pointer);
 
 	return new_payload_pointer;
@@ -444,12 +443,13 @@ void mm_check() {
 	size_t block_size = 0;
 	while( (block_size=GET_SIZE(HDRP(payload_pointer))) > 0 ) {
 		if(GET_ALLOC(HDRP(payload_pointer))) {
-			LOG_RECORD("\t\ta\t\t%d\t\t"COMMA GET_SIZE(HDRP(payload_pointer)));
+			LOG_RECORD("\t\ta\t\t%d"COMMA GET_SIZE(HDRP(payload_pointer)));
 		} else {
-			LOG_RECORD("\t\tf\t\t%d\t\t"COMMA GET_SIZE(HDRP(payload_pointer)));
+			LOG_RECORD("\t\tf\t\t%d"COMMA GET_SIZE(HDRP(payload_pointer)));
 		}
 		payload_pointer = NEXT_BLKP(payload_pointer);
 	}
+    LOG_RECORD("\n");
 	return;
 }
 
